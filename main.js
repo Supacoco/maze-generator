@@ -6,12 +6,16 @@ class Cell {
     this.walls = [true, true, true, true]
   }
 
-  draw () {
+  draw (highlight = false) {
     context.strokeStyle = 'pink'
     context.fillStyle = '#333'
    
     if (this.visited) {
       context.fillStyle = 'purple'
+    }
+
+    if (highlight) {
+      context.fillStyle = 'blue'
     }
 
     context.fillRect(this.x, this.y, RESOLUTION, RESOLUTION)
@@ -80,14 +84,15 @@ class Cell {
   }
 }
 
-const WIDTH = 400
-const HEIGHT = 400
+const WIDTH = 1200
+const HEIGHT = 800
 const RESOLUTION = 10
 
 const COLS = WIDTH / RESOLUTION
 const ROWS = HEIGHT / RESOLUTION
 
 let context
+let previous
 let current
 
 const cells = (WIDTH / RESOLUTION) * (HEIGHT / RESOLUTION)
@@ -108,6 +113,8 @@ const setup = () => {
       grid[getIndex(i, j)] = new Cell(i * RESOLUTION, j * RESOLUTION)
     }
   }
+
+  grid.forEach(cell => cell.draw())
 
   current = grid[0]
   current.visited = true
@@ -139,25 +146,58 @@ const removeWalls = (a, b) => {
     a.walls[2] = false
     b.walls[0] = false
   }
+
+  a.draw()
+  b.draw(true)
 }
 
 const draw = () => {
   const next = current.getUnvisitedNeighbour()
   
-  grid.forEach(cell => cell.draw())
-  current.highlight()
+  if (previous) {
+    previous.draw()
+  }
 
   if (next) {
     next.visited = true
     stack.push(current)
 
     removeWalls(current, next)
-    
+
+    previous = current
     current = next
   } else if (stack.length) {
+    current.draw()
+    previous = current
     current = stack.pop()
+    current.draw(true)
   }
 }
 
+const drawOneShot = () => {
+  let next
+  do {
+    next = current.getUnvisitedNeighbour()
+
+    if (next) {
+      next.visited = true
+      stack.push(current)
+
+      removeWalls(current, next)
+
+      previous = current
+      current = next
+    } else if (stack.length) {
+      current.draw()
+      previous = current
+      current = stack.pop()
+      current.draw(true)
+    }
+  } while (next || stack.length)
+
+  grid.forEach(cell => cell.draw())
+}
+
 setup()
-setInterval(draw, 16)
+// setInterval(draw, 16)
+drawOneShot()
