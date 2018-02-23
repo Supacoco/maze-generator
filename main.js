@@ -1,92 +1,6 @@
-class Cell {
-  constructor (x, y) {
-    this.x = x
-    this.y = y
-    this.visited = false
-    this.walls = [true, true, true, true]
-  }
-
-  draw (highlight = false) {
-    context.strokeStyle = 'pink'
-    context.fillStyle = '#333'
-   
-    if (this.visited) {
-      context.fillStyle = 'purple'
-    }
-
-    if (highlight) {
-      context.fillStyle = 'blue'
-    }
-
-    context.fillRect(this.x, this.y, RESOLUTION, RESOLUTION)
-    
-    if (this.walls[0]) {
-      context.beginPath()
-      context.moveTo(this.x, this.y)
-      context.lineTo(this.x + RESOLUTION, this.y)
-      context.stroke();
-    }
-
-    if (this.walls[1]) {
-      context.beginPath()
-      context.moveTo(this.x + RESOLUTION, this.y)
-      context.lineTo(this.x + RESOLUTION, this.y + RESOLUTION)
-      context.stroke();
-    }
-
-    if (this.walls[2]) {
-      context.beginPath()
-      context.moveTo(this.x, this.y + RESOLUTION)
-      context.lineTo(this.x + RESOLUTION, this.y + RESOLUTION)
-      context.stroke();
-    }
-
-    if (this.walls[3]) {
-      context.beginPath()
-      context.moveTo(this.x, this.y)
-      context.lineTo(this.x, this.y + RESOLUTION)
-      context.stroke();
-    }
-  }
-
-  getUnvisitedNeighbour () {
-    const neighbours = []
-    const x = this.x / RESOLUTION
-    const y = this.y / RESOLUTION
-  
-    const top = grid[getIndex(x, y - 1)]
-    const right = grid[getIndex(x + 1, y)]
-    const bottom = grid[getIndex(x, y + 1)]
-    const left = grid[getIndex(x - 1, y)]
-  
-    if (top && !top.visited) {
-      neighbours.push(top)
-    }
-    
-    if (right && !right.visited) {
-      neighbours.push(right)
-    }
-  
-    if (bottom && !bottom.visited) {
-      neighbours.push(bottom)
-    }
-  
-    if (left && !left.visited) {
-      neighbours.push(left)
-    }
-  
-    return neighbours[Math.floor(Math.random() * neighbours.length)]
-  }
-
-  highlight () {
-    context.fillStyle = 'blue'
-    context.fillRect(this.x, this.y, RESOLUTION, RESOLUTION)
-  }
-}
-
 const WIDTH = 1200
 const HEIGHT = 800
-const RESOLUTION = 10
+const RESOLUTION = 40
 
 const COLS = WIDTH / RESOLUTION
 const ROWS = HEIGHT / RESOLUTION
@@ -110,11 +24,11 @@ const setup = () => {
 
   for (let i = 0; i < COLS; i++) {
     for (let j = 0; j < ROWS; j++) {
-      grid[getIndex(i, j)] = new Cell(i * RESOLUTION, j * RESOLUTION)
+      grid[getIndex(i, j)] = new Cell(i * RESOLUTION, j * RESOLUTION, RESOLUTION)
     }
   }
 
-  grid.forEach(cell => cell.draw())
+  grid.forEach(cell => cell.draw(context))
 
   current = grid[0]
   current.visited = true
@@ -127,50 +41,27 @@ const getIndex = (x, y) => {
   return y * COLS + x
 }
 
-const removeWalls = (a, b) => {
-  const x = a.x / RESOLUTION - b.x / RESOLUTION
-  const y = a.y / RESOLUTION - b.y / RESOLUTION
-
-  if (x === 1) {
-    a.walls[3] = false
-    b.walls[1] = false
-  } else if (x === -1) {
-    a.walls[1] = false
-    b.walls[3] = false
-  }
-
-  if (y === 1) {
-    a.walls[0] = false
-    b.walls[2] = false
-  } else if (y === -1) {
-    a.walls[2] = false
-    b.walls[0] = false
-  }
-
-  a.draw()
-  b.draw(true)
-}
-
 const draw = () => {
   const next = current.getUnvisitedNeighbour()
   
   if (previous) {
-    previous.draw()
+    previous.draw(context)
   }
 
   if (next) {
     next.visited = true
     stack.push(current)
 
-    removeWalls(current, next)
+    current.removeWalls(next)
+    next.removeWalls(current, true)
 
     previous = current
     current = next
   } else if (stack.length) {
-    current.draw()
+    current.draw(context)
     previous = current
     current = stack.pop()
-    current.draw(true)
+    current.draw(context, true)
   }
 }
 
@@ -183,21 +74,20 @@ const drawOneShot = () => {
       next.visited = true
       stack.push(current)
 
-      removeWalls(current, next)
+      current.removeWalls(next)
+      next.removeWalls(current)
 
       previous = current
       current = next
     } else if (stack.length) {
-      current.draw()
       previous = current
       current = stack.pop()
-      current.draw(true)
     }
   } while (next || stack.length)
 
-  grid.forEach(cell => cell.draw())
+  grid.forEach(cell => cell.draw(context))
 }
 
 setup()
-// setInterval(draw, 16)
+// setInterval(draw, 128)
 drawOneShot()
